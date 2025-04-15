@@ -1,1 +1,162 @@
-testmodel
+# 📦 필요한 모듈 임포트
+import os
+import cv2
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch.utils.data import Dataset, DataLoader
+from ultralytics import YOLO
+import xml.etree.ElementTree as ET
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, precision_score, recall_score, accuracy_score
+import matplotlib.pyplot as plt
+import pandas as pd
+from datetime import datetime
+
+# 📌 LSTM 기반 Pose Classifier + Dropout
+class LSTMPoseClassifier(nn.Module):
+    def __init__(self, input_size=34, hidden_size=128, num_layers=2, num_classes=2, dropout=0.5):
+        super().__init__()
+        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, dropout=dropout)
+        self.dropout = nn.Dropout(dropout)
+        self.fc = nn.Linear(hidden_size, num_classes)
+
+    def forward(self, x):
+        out, _ = self.lstm(x)
+        out = self.dropout(out[:, -1, :])
+        return self.fc(out)
+
+# 📌 데이터셋 클래스
+class AbnormalPoseDataset(Dataset):
+    def __init__(self, root_dir, sequence_length=30, stride=5, threshold=0.3):
+        self.sequence_length = sequence_length
+        self.stride = stride
+        self.threshold = threshold
+        self.model = YOLO("yolov8n-pose.pt")
+
+        self.video_dir = os.path.join(root_dir, "01.원천데이터", "TS_03.이상행동_07.전도")
+        self.label_dir = os.path.join(root_dir, "02.라벨링데이터", "TL_03.이상행동_07.전도")
+        self.samples = self._make_dataset()
+
+    def _parse_fall_range(self, xml_path):
+        tree = ET.parse(xml_path)
+        root = tree.getroot()
+
+        start_frame, end_frame = -1, -1
+        for track in root.findall("track"):
+            label = track.attrib.get("label", "")
+            if label == "fall_start":
+                for box in track.findall("box"):
+                    start_frame = int(box.attrib["frame"])
+            elif label == "fall_end":
+                for box in track.findall("box"):
+                    end_frame = int(box.attrib["frame"])
+
+        return start_frame, end_frame
+
+    def _make_dataset(self):
+        samples = []
+        filenames = sorted(f for f in os.listdir(self.video_dir) if f.endswith(".mp4"))
+
+        for file in filenames:
+            video_path = os.path.join(self.video_dir, file)
+            label_path = os.path.join(self.label_dir, file.replace(".mp4", ".xml"))
+            if not os.path.exists(label_path):
+                continue
+
+            fall_start, fall_end = self._parse_fall_range(label_path)
+            cap = cv2.VideoCapture(video_path)
+            total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+            keypoints_list = []
+            for i in range(total_frames):
+                ret, frame = cap.read()
+                if not ret:
+                    break
+                result = self.model(frame)[0]
+                keypoints = result.keypoints
+                if keypoints is not None and len(keypoints.xy) > 0:
+                    keypoint_xy = keypoints.xy[0].cpu().numpy().flatten()
+                    if len(keypoint_xy) == 34:
+                        keypoints_list.append(keypoint_xy)
+                    else:
+                        keypoints_list.append(np.zeros(34))
+                else:
+                    keypoints_list.append(np.zeros(34))
+            cap.release()
+
+            keypoints_array = np.array(keypoints_list)
+            for i in range(0, len(keypoints_array) - self.sequence_length, self.stride):
+                seq = keypoints_array[i:i + self.sequence_length]
+                abnormal_ratio = 0
+                if fall_start != -1 and fall_end != -1:
+                    overlap = max(0, min(fall_end, i + self.sequence_length) - max(fall_start, i))
+                    abnormal_ratio = overlap / self.sequence_length
+                label = 1 if abnormal_ratio > self.threshold else 0
+                samples.append((torch.tensor(seq, dtype=torch.float32), label))
+
+        return samples
+
+    def __len__(self):
+        return len(self.samples)
+
+    def __getitem__(self, idx):
+        return self.samples[idx]
+
+# 📌 학습 및 평가
+root_dir = "/Users/seunggi/Desktop/Capstone/local_test"
+dataset = AbnormalPoseDataset(root_dir, sequence_length=30, stride=5, threshold=0.2)
+dataloader = DataLoader(dataset, batch_size=4, shuffle=True)
+model = LSTMPoseClassifier()
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model.to(device)
+
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+epochs = 10
+
+# 로그 저장 준비
+log_rows = []
+all_preds, all_labels = [], []
+
+for epoch in range(epochs):
+    model.train()
+    total_loss = 0
+    for x, y in dataloader:
+        x, y = x.to(device), y.to(device)
+        pred = model(x)
+        # 개선된 loss
+        class_weights = torch.tensor([1.0, 3.0]).to(device)  # label 0: 정상, label 1: 이상행동
+        loss = F.cross_entropy(pred, y, weight=class_weights)
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        total_loss += loss.item()
+        all_preds += pred.argmax(dim=1).cpu().tolist()
+        all_labels += y.cpu().tolist()
+
+    print(f"Epoch {epoch+1} | Loss: {total_loss:.4f}")
+    log_rows.append({"epoch": epoch + 1, "loss": total_loss})
+
+# ✅ 성능 평가
+acc = accuracy_score(all_labels, all_preds)
+precision = precision_score(all_labels, all_preds, zero_division=0)
+recall = recall_score(all_labels, all_preds, zero_division=0)
+cm = confusion_matrix(all_labels, all_preds)
+print("Accuracy:", acc)
+print("Precision:", precision)
+print("Recall:", recall)
+print("Confusion Matrix:\n", cm)
+
+# ✅ 혼동행렬 저장
+disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=["Normal", "Abnormal"])
+disp.plot(cmap=plt.cm.Blues)
+plt.title("Confusion Matrix")
+plt.savefig("confusionmatrix.png")
+plt.close()
+
+# ✅ 로그 저장
+log_df = pd.DataFrame(log_rows)
+log_df.to_csv("traininglog.csv", index=False)
+
+# ✅ 모델 저장
+torch.save(model.state_dict(), f"model_checkpoint_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pth")
