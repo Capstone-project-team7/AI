@@ -6,10 +6,10 @@ from ultralytics import YOLO
 from model import LSTMPoseClassifier  # 모델 정의가 들어있는 파일로부터 import
 import argparse
 
-# 🔧 클래스 이름 (너의 class_map 순서 그대로)
 CLASS_NAMES = [
-    "절도", "방화", "전도", "폭행", "파손", "유기", "흡연"
+    "Fall", "Damage", "Fire", "Smoke", "Abandon", "Theft", "Assault"
 ]
+
 
 # 📌 추론 함수
 def run_inference(video_path, model_path, sequence_length=45):
