@@ -1,0 +1,12 @@
+opencv-python
+fastapi
+uvicorn[standard]
+torch
+torchvision
+torchaudio
+numpy
+ultralytics
+boto3
+httpx
+Pillow
+# matplotlib # 필요한 경우 주석 해제 (일부 라이브러리의 내부 의존성 또는 직접 사용 시)
