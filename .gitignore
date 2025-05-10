@@ -1,0 +1,16 @@
+# 가상환경 무시
+
+.env
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# macOS 전용 무시 파일
+.DS_Store
+
+# 영상 및 로그 등 대용량 파일 무시
+*.avi
+*.mp4
+*.mkv
+*.log
