@@ -1,12 +1,13 @@
 import httpx
 import logging
 import time
-from typing import Dict, Tuple, Any, Optional
+from typing import Dict, Tuple, Any, Optional, Union
 
 logger = logging.getLogger(__name__)
 
 # 스프링부트 서버 API 엔드포인트 설정
-MAIN_SERVER_API_URL = "http://localhost:8080/api/anomaly/notify"  # 팀원의 코드와 일치하도록 변경
+#MAIN_SERVER_API_URL = "http://localhost:8080/api/anomaly/detection"  # 테스트용
+MAIN_SERVER_API_URL = "http://localhost:8080/api/anomaly/notify"
 
 async def send_detection_info_to_server(detection_data: Dict[str, Any]) -> Tuple[bool, Dict[str, Any]]:
     """
@@ -72,7 +73,7 @@ async def send_detection_info_to_server(detection_data: Dict[str, Any]) -> Tuple
         return False, {"error": f"Unexpected Error: {str(e)}"}
 
 def format_detection_for_api(
-    cctv_id: str, 
+    cctv_id: Union[int, str], 
     videoUrl: str, 
     anomalyType: str,
     confidence: float,
@@ -84,7 +85,7 @@ def format_detection_for_api(
     API 호출을 위해 감지 정보를 포맷팅합니다.
     
     Args:
-        cctv_id: CCTV 식별자 
+        cctv_id: CCTV 식별자 (정수로 처리됨, 문자열이면 변환 시도)
         videoUrl: S3에 업로드된 영상 URL
         anomalyType: 감지된 이벤트 유형 (예: "절도_행위", "이상_행동")
         confidence: 감지 신뢰도 점수
@@ -102,21 +103,34 @@ def format_detection_for_api(
     # 사용자 ID가 없으면 기본값 설정 (필요에 따라 조정)
     if user_id is None:
         user_id = 1  # 기본 사용자 ID
+    
+    # CCTV ID를 숫자로 변환 (문자열이면 변환 시도)
+    cctv_id_numeric = None
+    try:
+        if isinstance(cctv_id, (int, float)):
+            cctv_id_numeric = int(cctv_id)
+        elif isinstance(cctv_id, str) and cctv_id.strip().isdigit():
+            cctv_id_numeric = int(cctv_id)
+        else:
+            # 숫자로 변환할 수 없는 경우 원래 값 유지
+            logger.warning(f"cctv_id '{cctv_id}'를 숫자로 변환할 수 없습니다. 원래 값을 사용합니다.")
+            cctv_id_numeric = cctv_id
+    except Exception as e:
+        logger.error(f"cctv_id 변환 중 오류: {e}")
+        cctv_id_numeric = cctv_id  # 오류 발생 시 원래 값 유지
         
-    # 기본 데이터 구성
+    # 기본 데이터 구성 - 스프링부트 AnomalyVideoMetadataRequest DTO의 @JsonProperty에 맞춤
     api_data = {
         "videoUrl": videoUrl,
         "anomalyType": anomalyType,
         "timestamp": timestamp,
-        "userId": user_id,
-        "cctv_id": cctv_id  # cctv_id 필드 추가
+        "user_id": user_id,   # DTO에 @JsonProperty("user_id")로 정의됨
+        "cctv_id": cctv_id_numeric,   # 숫자로 변환된 cctv_id를 사용
+        "confidence": confidence
     }
     
     # 썸네일 URL이 있으면 추가 (확장 기능)
     if thumbnail_url:
-        api_data["thumbnailUrl"] = thumbnail_url
-    
-    # 신뢰도 정보 추가 (확장 기능)
-    api_data["confidence"] = confidence
+        api_data["thumbnail_url"] = thumbnail_url  # DTO에 @JsonProperty("thumbnail_url")로 정의됨
         
     return api_data
