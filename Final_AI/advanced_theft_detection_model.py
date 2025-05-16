@@ -120,8 +120,9 @@ def advanced_theft_detection_model(frame, buffer, min_length=45):
 
     logger.debug(f"처리시간: {elapsed:.3f}s, 클래스: {behavior}, 신뢰도: {conf:.3f}, 임계값: {threshold:.2f}")
 
-    if idx != 0 and conf >= threshold:
-        return True, conf, f"{behavior} 감지"
+    if idx != normal_idx and conf >= threshold:
+        # 순수 클래스명, 메시지는 호출하는 쪽에서 붙여주자
+        return True, conf, behavior
     return False, conf, None
 
 def theft_detection_model(frame, buffer):
