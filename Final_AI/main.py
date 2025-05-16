@@ -157,8 +157,20 @@ active_processors = {}
 class VideoProcessor:
     def __init__(self, rtsp_url, cctv_id, user_id=None):
         self.rtsp_url = rtsp_url
-        self.stream_id = cctv_id  # 기존 코드와의 호환성 유지
-        self.cctv_id = cctv_id
+        
+        # cctv_id를 정수로 변환 시도
+        try:
+            if isinstance(cctv_id, str) and cctv_id.isdigit():
+                self.cctv_id = int(cctv_id)
+            elif isinstance(cctv_id, (int, float)):
+                self.cctv_id = int(cctv_id)
+            else:
+                self.cctv_id = cctv_id  # 변환 불가능한 경우 원래 값 유지
+        except Exception:
+            # 변환 중 오류가 발생하면 원래 값 사용
+            self.cctv_id = cctv_id
+            
+        self.stream_id = self.cctv_id  # 기존 코드와의 호환성 유지
         self.user_id = user_id if user_id is not None else 1  # 기본값 1
         self.cap = None
         self.is_running = False
@@ -233,9 +245,11 @@ class VideoProcessor:
                     
                     if detection_result and isinstance(detection_result, tuple) and len(detection_result) >= 3:
                         is_anomaly, confidence, behavior_type = detection_result
-                        # ── 정상행동("Normal")일 때는 감지 로직 스킵
+                        
                         if behavior_type == "Normal":
                             continue
+
+                        
                         if is_anomaly:
                             current_time = time.time()
                             
@@ -357,7 +371,7 @@ class VideoProcessor:
                     
                     # 외부 서버에 감지 정보 전송
                     detection_info = format_detection_for_api(
-                        self.cctv_id,  # cctv_id 
+                        self.cctv_id,  # cctv_id (숫자 형식 그대로 전달)
                         url,  # videoUrl
                         self.last_behavior_type if self.last_behavior_type else "이상 행동 감지",  # anomalyType
                         self.last_confidence,  # confidence
@@ -496,22 +510,40 @@ async def get_active_streams():
 @app.post("/api/v1/streaming/start")
 async def start_stream(payload: dict = Body(..., example={"cctv_id": 456, "user_id": 123, "rtsp_url": "rtsp://..."})):
     """새로운 RTSP 스트림 모니터링 시작"""
-    cctv_id = str(payload.get("cctv_id"))
+    cctv_id_raw = payload.get("cctv_id")
+    
+    # cctv_id 숫자 처리
+    try:
+        # 숫자로 변환 시도
+        if isinstance(cctv_id_raw, (int, float)):
+            cctv_id = int(cctv_id_raw)
+        elif isinstance(cctv_id_raw, str) and cctv_id_raw.strip().isdigit():
+            cctv_id = int(cctv_id_raw)
+        else:
+            # 변환 불가능한 경우 (예외적인 경우)
+            cctv_id = cctv_id_raw
+    except Exception:
+        # 변환 실패 시 원래 값 사용
+        cctv_id = cctv_id_raw
+    
     user_id = payload.get("user_id")
     rtsp_url = payload.get("rtsp_url")
     
     if not cctv_id or not rtsp_url:
         raise HTTPException(status_code=400, detail="cctv_id와 rtsp_url이 필요합니다")
     
+    # 문자열 키로 딕셔너리 처리를 위해 키를 문자열로 변환
+    cctv_id_key = str(cctv_id)
+    
     # 이미 실행 중인 스트림인지 확인
-    if cctv_id in active_processors:
+    if cctv_id_key in active_processors:
         # 기존 프로세서 중지
-        active_processors[cctv_id].stop()
+        active_processors[cctv_id_key].stop()
         logger.warning(f"기존 스트림 '{cctv_id}' 중지됨")
     
     # 새 비디오 프로세서 생성 및 시작
     processor = VideoProcessor(rtsp_url, cctv_id, user_id)
-    active_processors[cctv_id] = processor
+    active_processors[cctv_id_key] = processor
     
     # 비동기 작업으로 실행
     asyncio.create_task(processor.start())
@@ -519,17 +551,39 @@ async def start_stream(payload: dict = Body(..., example={"cctv_id": 456, "user_
     logger.warning(f"✅ 스트림 '{cctv_id}' 시작됨: {rtsp_url}")
     return {"status": "success", "message": f"스트림 '{cctv_id}' 시작됨"}
 
-@app.put("/api/v1/streaming/stop/{cctv_id}")
-async def stop_stream(cctv_id: str):
-    """실행 중인 스트림 모니터링 중지"""
-    if cctv_id not in active_processors:
+@app.put("/api/v1/streaming/stop")
+async def stop_stream_by_user(payload: dict = Body(..., example={"user_id": 1, "cctv_id": 456})):
+    """Spring에서 검증된 user_id와 cctv_id 기반으로 스트림 중지"""
+    user_id = payload.get("user_id")
+    cctv_id_raw = payload.get("cctv_id")
+    
+    # cctv_id 숫자 처리
+    try:
+        if isinstance(cctv_id_raw, (int, float)):
+            cctv_id = int(cctv_id_raw)
+        elif isinstance(cctv_id_raw, str) and cctv_id_raw.strip().isdigit():
+            cctv_id = int(cctv_id_raw)
+        else:
+            cctv_id = cctv_id_raw
+    except Exception:
+        cctv_id = cctv_id_raw
+    
+    cctv_id_key = str(cctv_id)
+
+    if not user_id or not cctv_id:
+        raise HTTPException(status_code=400, detail="user_id와 cctv_id가 필요합니다")
+
+    if cctv_id_key not in active_processors:
         raise HTTPException(status_code=404, detail=f"스트림 '{cctv_id}'를 찾을 수 없습니다")
-    
-    # 프로세서 중지
-    active_processors[cctv_id].stop()
-    del active_processors[cctv_id]
-    
-    logger.warning(f"🛑 스트림 '{cctv_id}' 중지됨")
+
+    processor = active_processors[cctv_id_key]
+    if str(processor.user_id) != str(user_id):
+        raise HTTPException(status_code=403, detail="이 스트림을 중지할 권한이 없습니다")
+
+    processor.stop()
+    del active_processors[cctv_id_key]
+
+    logger.warning(f"🔴 스트림 '{cctv_id}' (user {user_id}) 중지됨")
     return {"status": "success", "message": f"스트림 '{cctv_id}' 중지됨"}
 
 @app.get("/api/v1/test/s3")
@@ -649,10 +703,10 @@ async def legacy_start_stream(payload: dict = Body(...)):
         payload["cctv_id"] = payload["stream_id"]
     return await start_stream(payload)
 
-@app.post("/stop_stream/{stream_id}")
-async def legacy_stop_stream(stream_id: str):
-    """하위 호환성을 위한 리디렉션"""
-    return await stop_stream(stream_id)
+# @app.post("/stop_stream/{stream_id}")
+# async def legacy_stop_stream(stream_id: str):
+#     """하위 호환성을 위한 리디렉션"""
+#     return await stop_stream(stream_id)
 
 @app.get("/test_s3")
 async def legacy_test_s3():
@@ -682,59 +736,3 @@ async def legacy_test_model():
 
 
 #    kill 56593
-
-
-
-
-
-# uvicorn이 어떤 폴더에서는 되고, 어떤 폴더에서는 안 되는 이유는 보통 가상환경(venv)의 활성화 여부와 uvicorn 설치 위치 때문입니다. 아래 내용을 따라가며 확인해 보세요.
-
-# ⸻
-
-# ✅ 1. 현재 가상환경이 정상적으로 활성화되었는지 확인
-
-# 터미널에 (base)만 뜨고, venv 환경이 활성화되지 않았을 가능성이 큽니다.
-
-# 예: (base)만 있다면 Conda base 환경이고, Python venv는 활성화되지 않았습니다.
-
-# 👉 활성화 방법 (가상환경 디렉토리가 venv일 때):
-
-# source venv/bin/activate
-
-# 그러면 프롬프트가 이렇게 바뀔 겁니다:
-
-# (venv) PARK@admins-MacBook-Pro AI %
-
-
-# ⸻
-
-# ✅ 2. uvicorn이 설치되어 있는지 확인
-
-# 가상환경이 활성화된 상태에서:
-
-# pip list | grep uvicorn
-
-# 없다면 설치하세요:
-
-# pip install uvicorn
-
-
-# ⸻
-
-# ✅ 3. 다시 실행
-
-# 가상환경이 활성화된 상태에서 프로젝트 폴더(예: AI/)로 이동하여:
-
-# uvicorn main:app --reload --host 0.0.0.0 --port 8000
-
-
-# ⸻
-
-# 🔍 참고: 왜 다른 폴더에선 되는데 여기선 안 될까?
-# 	•	어떤 폴더에서는 시스템 전역 또는 다른 가상환경에서 uvicorn이 설치되어 있어 동작했을 가능성
-# 	•	현재 폴더에서는 venv 가상환경만 있고 활성화되지 않아서 uvicorn 명령을 못 찾는 상태
-
-# ⸻
-
-# 필요하시면 which uvicorn 명령으로 uvicorn이 어디에 설치되어 있는지도 알려드릴 수 있어요.
-# 원하시면 같이 확인해드릴까요?
