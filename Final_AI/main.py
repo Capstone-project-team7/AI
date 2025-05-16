@@ -246,10 +246,6 @@ class VideoProcessor:
                     if detection_result and isinstance(detection_result, tuple) and len(detection_result) >= 3:
                         is_anomaly, confidence, behavior_type = detection_result
                         
-                        if behavior_type == "Normal":
-                            continue
-
-                        
                         if is_anomaly:
                             current_time = time.time()
                             
