@@ -7,7 +7,7 @@ from model import LSTMPoseClassifier  # 모델 정의가 들어있는 파일로�
 import argparse
 
 CLASS_NAMES = [
-    "Fall", "Damage", "Fire", "Smoke", "Abandon", "Theft", "Assault"
+    "Fall", "Damage", "Fire", "Smoke", "Abandon", "Theft", "Assault", "Normal"
 ]
 
 
@@ -15,12 +15,12 @@ CLASS_NAMES = [
 def run_inference(video_path, model_path, sequence_length=45):
     # 1. 모델 로드
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    lstm_model = LSTMPoseClassifier(input_size=34, hidden_size=128, num_layers=2, num_classes=7)
+    lstm_model = LSTMPoseClassifier(input_size=34, hidden_size=128, num_layers=2, num_classes=8)
     lstm_model.load_state_dict(torch.load(model_path, map_location=device))
     lstm_model.to(device).eval()
 
     # 2. YOLO 로드
-    pose_model = YOLO("yolov8n-pose.pt")
+    pose_model = YOLO("yolo11s-pose.pt")
 
     # 3. 비디오 열기
     cap = cv2.VideoCapture(video_path)
