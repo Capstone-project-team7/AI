@@ -4,7 +4,7 @@ directory/
 ├── model.py                            # LSTMPoseClassifier 클래스 정의
 ├── utils_s3.py                         # AWS S3 연동 유틸리티
 ├── utils_api.py                        # 외부 API 연동 유틸리티
-├── yolov8n-pose.pt                     # YOLOv8 포즈 추정 모델 
+├── yolov11.pt                     # YOLO11 추정 모델 
 ├── final_model_20250504_033924.pth      # 사용자 정의 LSTM 행동 분류 모델
 ├── recordings/                         # (자동 생성) 녹화 영상 저장 폴더
 └── requirements.txt                    # Python 라이브러리 목록
@@ -20,6 +20,10 @@ python -m venv venv
 # macOS/Linux
 python3 -m venv venv
 source venv/bin/activate
+
+
+-> venv 만들고 그 폴더에 모든 파일(main.py, 감지기 등등) 넣기
+->venv로 들어가서(cd venv) 활성화(activate) 시켜주면 터미널에 (base)가 아니라 (venv)라고 뜸
 
 ──────────────────────────────────────────────────────────────────────────────────────────  
 requirements.txt 및 라이브러리 설치
