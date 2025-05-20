@@ -7,8 +7,9 @@ logger = logging.getLogger(__name__)
 
 # 스프링부트 서버 API 엔드포인트 설정
 #MAIN_SERVER_API_URL = "http://localhost:8080/api/anomaly/detection"  
-MAIN_SERVER_API_URL = "http://localhost:8080/api/anomaly/notify"
-#MAIN_SERVER_API_URL = "http://43.201.129.51:8080/api/anomaly/notify" # ngrok 엔드포인트로 변경
+#MAIN_SERVER_API_URL = "http://localhost:8080/api/anomaly/notify"
+#MAIN_SERVER_API_URL = "http://43.201.129.51:8080/api/anomaly/notify" 
+MAIN_SERVER_API_URL = "https://meerkat-ai-gray.duckdns.org/api/anomaly/notify" # 실제 서버 URL
 
 async def send_detection_info_to_server(detection_data: Dict[str, Any]) -> Tuple[bool, Dict[str, Any]]:
     """
