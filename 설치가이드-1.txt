@@ -1,0 +1,39 @@
+directory/
+├── main.py                             # FastAPI 애플리케이션, 메인 로직
+├── advanced_theft_detection_model.py   # AI 탐지 모델 로직
+├── model.py                            # LSTMPoseClassifier 클래스 정의
+├── utils_s3.py                         # AWS S3 연동 유틸리티
+├── utils_api.py                        # 외부 API 연동 유틸리티
+├── yolov8n-pose.pt                     # YOLOv8 포즈 추정 모델 
+├── final_model_20250504_033924.pth      # 사용자 정의 LSTM 행동 분류 모델
+├── recordings/                         # (자동 생성) 녹화 영상 저장 폴더
+└── requirements.txt                    # Python 라이브러리 목록
+
+
+──────────────────────────────────────────────────────────────────────────────────────────     
+가상 환경 생성 및 활성화:
+
+# Windows
+python -m venv venv
+.\venv\Scripts\activate
+
+# macOS/Linux
+python3 -m venv venv
+source venv/bin/activate
+
+──────────────────────────────────────────────────────────────────────────────────────────  
+requirements.txt 및 라이브러리 설치
+프로젝트 루트 디렉토리(venv)에 requirements.txt 파일
+
+설치 명령어:
+pip install -r requirements.txt
+
+#환경 변수 설정 (AWS 개인정보이므로 github에는 안올림)
+
+export AWS_ACCESS_KEY_ID="YOUR_ACCESS_KEY"
+export AWS_SECRET_ACCESS_KEY="YOUR_SECRET_KEY"
+export AWS_DEFAULT_REGION="ap-northeast-2"
+
+
+#애플리케이션 실행
+uvicorn main:app --reload --host 0.0.0.0 --port 8000

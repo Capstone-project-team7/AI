@@ -10,6 +10,7 @@ deactivate nondestructive
 
 setenv VIRTUAL_ENV "/Users/PARK/Desktop/TestAI/AI/venv"
 
+
 set _OLD_VIRTUAL_PATH="$PATH"
 setenv PATH "$VIRTUAL_ENV/bin:$PATH"
 
