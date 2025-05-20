@@ -1,4 +1,6 @@
-#!/Users/PARK/Desktop/GPU서버_테스트/venv/bin/python
+
+#!/Users/PARK/Desktop/TestAI/AI/venv/bin/python
+
 # -*- coding: utf-8 -*-
 import re
 import sys

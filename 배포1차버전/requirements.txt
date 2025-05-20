@@ -1,0 +1,17 @@
+opencv-python
+fastapi
+uvicorn[standard]
+torch
+torchvision
+torchaudio
+numpy
+ultralytics
+boto3
+httpx
+Pillow
+# matplotlib # 필요한 경우 주석 해제 (일부 라이브러리의 내부 의존성 또는 직접 사용 시)
+
+# 비디오 인코딩 관련 추가 패키지
+opencv-contrib-python  # OpenCV 추가 모듈 (비디오 코덱 지원 강화)
+ffmpeg-python         # Python FFmpeg 래퍼
+moviepy               # 비디오 편집 및 처리 라이브러리

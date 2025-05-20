@@ -1,5 +1,5 @@
 # 가상환경 무시
-
+venv/
 .env
 __pycache__/
 *.pyc
