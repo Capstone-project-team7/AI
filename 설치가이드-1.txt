@@ -22,12 +22,12 @@ python3 -m venv venv
 source venv/bin/activate
 
 
--> venv 만들고 그 폴더에 모든 파일(main.py, 감지기 등등) 넣기
-->venv로 들어가서(cd venv) 활성화(activate) 시켜주면 터미널에 (base)가 아니라 (venv)라고 뜸
+-> venv 만들기
+->활성화(activate) 시켜주면 터미널에 (base)가 아니라 (venv)라고 뜸
 
 ──────────────────────────────────────────────────────────────────────────────────────────  
 requirements.txt 및 라이브러리 설치
-프로젝트 루트 디렉토리(venv)에 requirements.txt 파일
+requirements.txt 파일
 
 설치 명령어:
 pip install -r requirements.txt

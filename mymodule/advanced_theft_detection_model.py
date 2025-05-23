@@ -5,7 +5,8 @@ import torch
 import torch.nn.functional as F
 import numpy as np
 from ultralytics import YOLO
-from model import LSTMPoseClassifier
+
+from mymodule.model import LSTMPoseClassifier
 
 # 로거 설정
 logger = logging.getLogger(__name__)
