@@ -1185,7 +1185,7 @@ async def legacy_test_media():
     return await test_media_upload()
 
 
-# cd venv && uvicorn main:app --reload --host 0.0.0.0 --port 8000
+# uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 
 #    lsof -i :8000
