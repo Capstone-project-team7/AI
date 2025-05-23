@@ -259,8 +259,8 @@ class VideoProcessor:
             # 프레임 버퍼에 추가
             self.frame_buffer.append(frame.copy())
             
-            # 3 프레임마다 이상행동 감지 (성능 최적화)
-            if frame_count % 3 == 0:
+            # 10 프레임마다 이상행동 감지 (성능 최적화)30fps 
+            if frame_count % 10 == 0:
                 # 이상행동 감지 모델 실행
                 try:
                     detection_result = theft_detection_model(frame, self.keypoints_buffer)
@@ -1174,7 +1174,7 @@ async def legacy_test_media():
     """하위 호환성을 위한 리디렉션"""
     return await test_media_upload()
 
-# # 서버 시작용 코드
+# # # 서버 시작용 코드
 # if __name__ == "__main__":
 #     # 환경변수에서 포트 가져오기 (기본값: 8000)
 #     port = int(os.environ.get("PORT", 8000))
