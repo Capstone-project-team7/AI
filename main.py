@@ -236,7 +236,10 @@ class VideoProcessor:
         width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         fps = self.cap.get(cv2.CAP_PROP_FPS)
-        
+        if fps <= 0 or fps > 120:
+            logger.warning(f"[{self.cctv_id}] FPS 값 비정상: {fps}, 기본값 30fps 사용")
+            fps = 30.0  # 기본값으로 설정
+            
         logger.info(f"[{self.cctv_id}] 비디오 정보: {width}x{height}, {fps}fps")
         
         try:
@@ -486,7 +489,7 @@ class VideoProcessor:
             first_frame = self.frame_buffer[0]
             height, width = first_frame.shape[:2]
             fps = self.cap.get(cv2.CAP_PROP_FPS)
-            if fps <= 0:  # FPS를 가져올 수 없으면 기본값 사용
+            if fps <= 0 or fps > 120:  # FPS를 가져올 수 없으면 기본값 사용
                 fps = 30
                 
             # H.264 계열 코덱 사용 (브라우저 호환성 최대화)
