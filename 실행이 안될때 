@@ -1,0 +1,130 @@
+⸻
+
+✅ 원인 파악을 위한 진단 리스트
+
+1. 어떤 Python 환경을 쓰고 있는지 확인
+
+which python
+
+또는
+
+which python3
+
+이 명령어는 지금 사용 중인 Python이 시스템 기본인지, 가상환경(venv)인지 확인하는 데 중요합니다.
+
+예시 출력:
+
+/Users/yourname/AI/venv/bin/python
+
+만약 /usr/bin/python 같은 경로가 나온다면 시스템 Python을 쓰고 있어서, venv가 적용되지 않은 것입니다.
+
+⸻
+
+2. pip 설치된 위치와 Python 실행 위치가 같은지 확인
+
+which pip
+which python
+
+또는
+
+pip show fastapi
+
+여기서 Location: 아래에 나오는 경로와 which python 경로가 다르면 패키지가 다른 환경에 설치된 것입니다.
+
+⸻
+
+✅ 해결 방법
+
+🛠 1. 가상환경(venv)을 제대로 활성화하기
+
+현재 디렉토리에 venv/가 있으니, 다음 명령어로 활성화해 주세요:
+
+source venv/bin/activate
+
+활성화되면 (venv) 이런 식으로 프롬프트에 뜨게 됩니다.
+
+그 상태에서 다시:
+
+pip install opencv-python fastapi uvicorn
+
+설치된 후 다시 실행해보세요:
+
+uvicorn main:app --reload
+
+
+⸻
+
+🛠 2. 가상환경이 아예 망가졌다면 재생성도 가능
+
+rm -rf venv
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt  # 파일이 있다면
+
+없다면 수동 설치:
+
+pip install fastapi uvicorn opencv-python
+
+
+⸻
+
+✅ 제대로 설치되었는지 테스트
+
+python
+>>> import cv2
+>>> import fastapi
+
+에러 없이 실행되면 성공입니다.
+
+⸻
+
+필요하다면 제가 위 단계 중 어떤 걸 함께 봐줄 수 있으니, 각 단계에서 출력값 주시면 원인 바로 짚어드릴게요.
+
+
+좋아요! ✅ 지금 보니까 pip과 python 모두 가상환경(venv)의 경로를 가리키고 있으므로 가상환경이 정상적으로 활성화되어 있고, 그 안에서 설치되는 게 맞습니다.
+
+⸻
+
+🎯 이제 확인할 것
+	1.	현재 가상환경 안에서 필요한 패키지를 설치했는지 점검:
+
+pip install fastapi uvicorn opencv-python
+
+설치되어 있으면 Requirement already satisfied라고 나올 것이고, 없으면 자동으로 설치됩니다.
+	2.	그 후 FastAPI 앱을 실행:
+
+uvicorn main:app --reload
+
+
+⸻
+
+🧪 간단 테스트도 가능
+
+python
+
+진입 후:
+
+import cv2
+import fastapi
+
+에러가 안 나면 환경 문제는 다 해결된 겁니다.
+
+⸻
+
+필요하면 requirements.txt도 만들어둘 수 있어요:
+
+pip freeze > requirements.txt
+
+이러면 팀원이나 서버에 배포할 때도 딱 한 줄로 환경 재현이 됩니다:
+
+pip install -r requirements.txt
+
+
+⸻
+
+📌 정리하면:
+	•	네, 너가 가리킨 환경 문제 맞았고
+	•	지금 경로 상태는 완전 정상입니다
+	•	위 설치만 마치면 import 에러는 사라질 거예요
+
+문제 생기면 출력만 알려줘요, 바로 봐드릴게요.

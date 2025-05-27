@@ -11,7 +11,8 @@ import torch # 모델 로드에 필요
 import shutil # 로컬 파일 복사/이동에 사용 가능
 import warnings
 import logging.handlers
-import numpy as np  # test_model 함수에 필요
+import numpy as np
+import uvicorn  # test_model 함수에 필요
 
 from  mymodule.utils_s3 import upload_to_s3, test_s3_connection, print_aws_credentials_info, setup_bucket_cors, check_bucket_public_access
 from  mymodule.utils_api import send_detection_info_to_server, format_detection_for_api
