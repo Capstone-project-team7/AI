@@ -5,7 +5,8 @@ import torch
 import torch.nn.functional as F
 import numpy as np
 from ultralytics import YOLO
-from model import LSTMPoseClassifier
+
+from mymodule.model import LSTMPoseClassifier
 
 # 로거 설정
 logger = logging.getLogger(__name__)
@@ -119,9 +120,9 @@ def advanced_theft_detection_model(frame, buffer, min_length=45):
     threshold = THRESHOLDS.get(behavior, DEFAULT_THRESHOLD)
 
     logger.debug(f"처리시간: {elapsed:.3f}s, 클래스: {behavior}, 신뢰도: {conf:.3f}, 임계값: {threshold:.2f}")
+    normal_idx = CLASS_NAMES.index("Normal")
 
-    if idx != normal_idx and conf >= threshold:
-        # 순수 클래스명, 메시지는 호출하는 쪽에서 붙여주자
+    if idx != normal_idx and conf >= threshold:   
         return True, conf, behavior
     return False, conf, None
 
